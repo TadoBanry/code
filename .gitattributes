@@ -1,2 +1,242 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+import sys
+from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+                             QListWidget, QListWidgetItem, QFormLayout, QGroupBox, QComboBox, QInputDialog, QFileDialog)
+from PyQt6.QtGui import QPixmap, QFont, QIcon
+from PyQt6.QtCore import Qt
+class LoginWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Авторизация")
+        self.setGeometry(300, 300, 300, 150)
+
+        layout = QVBoxLayout()
+
+        # Label for username
+        username_label = QLabel("Имя пользователя:")
+        layout.addWidget(username_label)
+
+        # Input field for username
+        self.username_input = QLineEdit()
+        layout.addWidget(self.username_input)
+
+        # Label for password
+        password_label = QLabel("Пароль:")
+        layout.addWidget(password_label)
+
+        # Input field for password
+        self.password_input = QLineEdit()
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)  # Hide password
+        layout.addWidget(self.password_input)
+
+        # Login button
+        login_button = QPushButton("Войти")
+        login_button.clicked.connect(self.login)
+        layout.addWidget(login_button)
+
+        self.setLayout(layout)
+
+    def login(self):
+        username = self.username_input.text()
+        password = self.password_input.text()
+
+        # Replace this with actual authentication logic
+        if username == "xxx" and password == "ruka":
+            self.close()  # Close the login window
+
+            # Create and show the main window
+            main_window = EmployeeInfoApp()
+            main_window.show()
+        else:
+            QMessageBox.warning(self, "Ошибка", "Неверный логин или пароль")
+
+class EmployeeInfoApp(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.initUI()
+        self.load_employees()
+
+    def initUI(self):
+        self.setWindowTitle('Досье на сотрудника')
+        self.setGeometry(100, 100, 800, 600)
+
+        main_layout = QHBoxLayout()
+
+        # Left panel (list of employees)
+        left_panel = QVBoxLayout()
+        self.employee_list = QListWidget()
+        self.employee_list.currentItemChanged.connect(self.display_employee_info)
+        left_panel.addWidget(self.employee_list)
+
+        # Buttons for managing employees
+        button_layout = QHBoxLayout()
+        add_button = QPushButton()
+        add_button.setIcon(QIcon.fromTheme("list-add"))  # Add standard icon
+        delete_button = QPushButton()
+        delete_button.setIcon(QIcon.fromTheme("list-remove"))  # Add standard icon
+        search_button = QPushButton()
+        search_button.setIcon(QIcon.fromTheme("edit-find"))  # Add standard icon
+
+        add_button.clicked.connect(self.add_employee)
+        delete_button.clicked.connect(self.delete_employee)
+
+        button_layout.addWidget(add_button)
+        button_layout.addWidget(delete_button)
+        button_layout.addWidget(search_button)
+        left_panel.addLayout(button_layout)
+
+        main_layout.addLayout(left_panel)
+
+        # Right panel (detailed information)
+        right_panel = QVBoxLayout()
+
+        # Photo and details
+        photo_layout = QHBoxLayout()
+        self.photo_label = QLabel()
+        self.photo_label.setPixmap(QPixmap('icons/default_photo.png').scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio))
+        photo_layout.addWidget(self.photo_label)
+
+        details_layout = QFormLayout()
+        self.name_label = QLabel("")
+        self.department_input = QLineEdit()
+        self.profile_input = QLineEdit()
+        self.contacts_input = QLineEdit()
+        self.schedule_combo = QComboBox()
+        self.schedule_combo.addItems(["9:00 - 18:00", "10:00 - 19:00", "11:00 - 20:00"])
+
+        details_layout.addRow(QLabel("Сотрудник:"), self.name_label)
+        details_layout.addRow(QLabel("Отдел:"), self.department_input)
+        details_layout.addRow(QLabel("Профиль:"), self.profile_input)
+        details_layout.addRow(QLabel("Список контактов:"), self.contacts_input)
+        details_layout.addRow(QLabel("Рабочий график:"), self.schedule_combo)
+
+        photo_layout.addLayout(details_layout)
+        right_panel.addLayout(photo_layout)
+
+        # Button to change photo
+        self.change_photo_button = QPushButton("Изменить фото")
+        self.change_photo_button.clicked.connect(self.change_photo)
+        right_panel.addWidget(self.change_photo_button)
+
+        # Additional options
+        self.leave_button = QPushButton("Посмотреть")
+        self.add_leave_button = QPushButton("Добавить...")
+        self.delete_leave_button = QPushButton("Удалить все")
+
+        leave_layout = QHBoxLayout()
+        leave_layout.addWidget(self.leave_button)
+        leave_layout.addWidget(self.add_leave_button)
+        leave_layout.addWidget(self.delete_leave_button)
+
+        right_panel.addLayout(leave_layout)
+
+        # Mapping domain to user
+        mapping_group = QGroupBox("Сопоставление сотрудника с именем пользователя системы")
+        mapping_layout = QFormLayout()
+        self.domain_combo = QComboBox()
+        self.domain_combo.addItems(["*"])
+        self.user_combo = QComboBox()
+        self.user_combo.addItems(["Пользователь"])
+
+        mapping_layout.addRow(QLabel("Домен:"), self.domain_combo)
+        mapping_layout.addRow(QLabel("Пользователь:"), self.user_combo)
+
+        mapping_group.setLayout(mapping_layout)
+        right_panel.addWidget(mapping_group)
+
+        # Quick choice
+        self.quick_choice_combo = QComboBox()
+        self.quick_choice_combo.addItems(["Быстрый выбор"])
+
+        right_panel.addWidget(QLabel("Быстрый выбор:"))
+        right_panel.addWidget(self.quick_choice_combo)
+
+        # Save button
+        self.save_button = QPushButton("Сохранить в базе")
+        right_panel.addWidget(self.save_button)
+
+        main_layout.addLayout(right_panel)
+
+        self.setLayout(main_layout)
+
+    def load_employees(self):
+        employees = [
+            {"name": "Зайцев Сергей", "photo": "icons/male1.png", "department": "IT", "profile": "Senior Developer", "contacts": "sergei@example.com", "schedule": "9:00 - 18:00"},
+            {"name": "Иванов Иван", "photo": "icons/male2.png", "department": "HR", "profile": "HR Manager", "contacts": "ivan@example.com", "schedule": "10:00 - 19:00"},
+            {"name": "Синицына Мария", "photo": "icons/female1.png", "department": "Finance", "profile": "Accountant", "contacts": "maria@example.com", "schedule": "9:00 - 18:00"},
+            {"name": "Петрова Анна", "photo": "icons/female2.png", "department": "Marketing", "profile": "Marketing Specialist", "contacts": "anna@example.com", "schedule": "11:00 - 20:00"},
+            {"name": "Кузнецов Дмитрий", "photo": "icons/male1.png", "department": "IT", "profile": "Junior Developer", "contacts": "dmitry@example.com", "schedule": "9:00 - 18:00"},
+            {"name": "Попова Ольга", "photo": "icons/female1.png", "department": "HR", "profile": "HR Assistant", "contacts": "olga@example.com", "schedule": "10:00 - 19:00"},
+            {"name": "Смирнов Алексей", "photo": "icons/male2.png", "department": "Finance", "profile": "Financial Analyst", "contacts": "alexei@example.com", "schedule": "9:00 - 18:00"},
+            {"name": "Соколова Светлана", "photo": "icons/female2.png", "department": "Marketing", "profile": "Content Manager", "contacts": "svetlana@example.com", "schedule": "11:00 - 20:00"}
+        ]
+        self.employees = employees
+        for employee in employees:
+            item = QListWidgetItem(employee["name"])
+            item.setData(Qt.ItemDataRole.UserRole, employee)
+            self.employee_list.addItem(item)
+
+    def display_employee_info(self, current, previous):
+        if current:
+            employee = current.data(Qt.ItemDataRole.UserRole)
+            self.name_label.setText(employee["name"])
+            self.photo_label.setPixmap(QPixmap(employee["photo"]).scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio))
+            self.department_input.setText(employee["department"])
+            self.profile_input.setText(employee["profile"])
+            self.contacts_input.setText(employee["contacts"])
+            self.schedule_combo.setCurrentText(employee["schedule"])
+            # Here you should load and display the rest of the employee data
+
+    def add_employee(self):
+        name, ok = QInputDialog.getText(self, "Добавить сотрудника", "Введите имя сотрудника:")
+        if ok and name:
+            photo, ok = QFileDialog.getOpenFileName(self, "Выберите фото сотрудника", "", "Images (*.png *.xpm *.jpg)")
+            if ok:
+                department, ok = QInputDialog.getText(self, "Добавить отдел", "Введите отдел:")
+                if ok and department:
+                    profile, ok = QInputDialog.getText(self, "Добавить профиль", "Введите профиль:")
+                    if ok and profile:
+                        contacts, ok = QInputDialog.getText(self, "Добавить контакты", "Введите контакты:")
+                        if ok and contacts:
+                            schedule, ok = QInputDialog.getItem(self, "Добавить рабочий график", "Выберите рабочий график:", ["9:00 - 18:00", "10:00 - 19:00", "11:00 - 20:00"], 0, False)
+                            if ok and schedule:
+                                new_employee = {"name": name, "photo": photo, "department": department, "profile": profile, "contacts": contacts, "schedule": schedule}
+                                item = QListWidgetItem(new_employee["name"])
+                                item.setData(Qt.ItemDataRole.UserRole, new_employee)
+                                self.employee_list.addItem(item)
+                                # Display the new employee info immediately
+                                self.employee_list.setCurrentItem(item)
+                            else:
+                                print("Рабочий график не выбран")
+                        else:
+                            print("Контакты не введены")
+                    else:
+                        print("Профиль не введен")
+                else:
+                    print("Отдел не введен")
+            else:
+                print("Фото не выбрано")
+
+    def delete_employee(self):
+        current_item = self.employee_list.currentItem()
+        if current_item:
+            self.employee_list.takeItem(self.employee_list.row(current_item))
+
+    def change_photo(self):
+        current_item = self.employee_list.currentItem()
+        if current_item:
+            employee = current_item.data(Qt.ItemDataRole.UserRole)
+            photo, ok = QFileDialog.getOpenFileName(self, "Выберите новое фото сотрудника", "", "Images (*.png *.xpm *.jpg)")
+            if ok:
+                employee["photo"] = photo
+                self.display_employee_info(current_item, None)
+
+def main():
+    app = QApplication(sys.argv)
+    ex = EmployeeInfoApp()
+    ex.show()
+    sys.exit(app.exec())
+
+if __name__ == '__main__':
+    main()
